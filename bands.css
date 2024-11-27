@@ -10,13 +10,41 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin-bottom: 20px;
-    height: 600px; /* Increased height to accommodate more data */
-    width: 90%; /* Allow space for legend */
+    height: 600px;
+    width: 90%;
     margin: 20px auto;
     position: relative;
+    cursor: grab;
 }
 
-/* Custom legend styles */
+.chart-container:active {
+    cursor: grabbing;
+}
+
+#resetZoom {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    padding: 8px 16px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+#resetZoom:hover {
+    background: #f0f0f0;
+    border-color: #ccc;
+}
+
+#resetZoom:active {
+    background: #e0e0e0;
+    transform: translateY(1px);
+}
+
 .chart-js-legend {
     position: absolute;
     right: 10px;

@@ -112,6 +112,32 @@ function createChartConfig(data) {
                             size: 11
                         }
                     }
+                },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'y',
+                        modifierKey: null  // Allow dragging without modifier key
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                            speed: 0.1
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'y',
+                        drag: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0,0,0,0.1)',
+                            borderColor: 'rgba(0,0,0,0.3)',
+                            borderWidth: 1
+                        }
+                    },
+                    limits: {
+                        y: {min: 'original', max: 'original'}
+                    }
                 }
             },
             scales: {

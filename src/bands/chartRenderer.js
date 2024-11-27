@@ -19,6 +19,13 @@ class ChartRenderer {
                 this.chart.resize();
             }
         });
+
+        // Add wheel handler for smoother zooming
+        document.getElementById(this.canvasId).addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     }
 
     destroy() {
@@ -35,14 +42,7 @@ class ChartRenderer {
         try {
             const data = await bollingerBandsService.fetchBollingerBands();
             if (data) {
-                // Find nearest resistance and support
-                const levels = bollingerBandsService.findNearestResistanceAndSupport(data);
-                
-                // Sort bands by price for better visualization
-                const sortedBands = bollingerBandsService.sortBandsByPrice(data);
-                
-                // Update chart with the processed data
-                this.renderChart(data, levels, sortedBands);
+                this.renderChart(data);
                 
                 // Update last update time
                 const lastUpdate = bollingerBandsService.getLastUpdateTime();
@@ -55,15 +55,17 @@ class ChartRenderer {
         }
     }
 
-    renderChart(data, levels, sortedBands) {
+    renderChart(data) {
         const ctx = document.getElementById(this.canvasId).getContext('2d');
-        const config = createChartConfig(data, levels, sortedBands);
+        const config = createChartConfig(data);
 
         if (this.chart) {
-            this.chart.destroy();
+            // Update data instead of destroying chart to preserve zoom state
+            this.chart.data = config.data;
+            this.chart.update('none'); // Update without animation
+        } else {
+            this.chart = new Chart(ctx, config);
         }
-
-        this.chart = new Chart(ctx, config);
 
         // Add click handler for tooltips
         ctx.canvas.onclick = (evt) => {
@@ -94,6 +96,12 @@ class ChartRenderer {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
+        }
+    }
+
+    resetZoom() {
+        if (this.chart) {
+            this.chart.resetZoom();
         }
     }
 }
