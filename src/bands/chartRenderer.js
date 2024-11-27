@@ -1,5 +1,6 @@
 import { createChartConfig } from './chartConfig.js';
 import { bollingerBandsService } from './dataService.js';
+import { bandsAnalyzer } from './analyzer.js';
 import { updateInterval } from './config.js';
 
 class ChartRenderer {
@@ -13,14 +14,12 @@ class ChartRenderer {
         this.startAutoUpdate();
         this.update();
 
-        // Add resize handler
         window.addEventListener('resize', () => {
             if (this.chart) {
                 this.chart.resize();
             }
         });
 
-        // Add wheel handler for smoother zooming
         document.getElementById(this.canvasId).addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
                 e.preventDefault();
@@ -42,9 +41,10 @@ class ChartRenderer {
         try {
             const data = await bollingerBandsService.fetchBollingerBands();
             if (data) {
+                const analysis = bandsAnalyzer.analyzeBands(data);
                 this.renderChart(data);
+                this.displayAnalysis(analysis);
                 
-                // Update last update time
                 const lastUpdate = bollingerBandsService.getLastUpdateTime();
                 if (lastUpdate) {
                     console.log('Last updated:', lastUpdate.toLocaleTimeString());
@@ -60,29 +60,81 @@ class ChartRenderer {
         const config = createChartConfig(data);
 
         if (this.chart) {
-            // Update data instead of destroying chart to preserve zoom state
             this.chart.data = config.data;
-            this.chart.update('none'); // Update without animation
+            this.chart.update('none');
         } else {
             this.chart = new Chart(ctx, config);
         }
+    }
 
-        // Add click handler for tooltips
-        ctx.canvas.onclick = (evt) => {
-            const points = this.chart.getElementsAtEventForMode(
-                evt,
-                'nearest',
-                { intersect: true },
-                true
-            );
-            
-            if (points.length) {
-                const firstPoint = points[0];
-                const label = this.chart.data.labels[firstPoint.index];
-                const value = this.chart.data.datasets[firstPoint.datasetIndex].data[firstPoint.index];
-                console.log(label, value);
-            }
+    displayAnalysis(analysis) {
+        let analysisDiv = document.getElementById('analysis-container');
+        if (!analysisDiv) {
+            analysisDiv = document.createElement('div');
+            analysisDiv.id = 'analysis-container';
+            document.querySelector('.chart-container').appendChild(analysisDiv);
+        }
+
+        const strengthBadge = (strength) => {
+            const colors = {
+                'Strong': '#4CAF50',
+                'Medium': '#FFC107',
+                'Weak': '#FF5722'
+            };
+            return `<span style="color: ${colors[strength]}; font-weight: bold;">${strength}</span>`;
         };
+
+        const formatLevel = (level) => `
+            <div class="level">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>${level.price.toFixed(2)}</span>
+                    <span>${strengthBadge(level.strength)}</span>
+                </div>
+                <div style="font-size: 11px; color: #666;">
+                    Timeframes: ${level.timeframes.join(', ')}
+                </div>
+            </div>
+        `;
+
+        const actionColors = {
+            'LONG': '#4CAF50',
+            'SHORT': '#FF5722',
+            'HOLD': '#FFC107'
+        };
+
+        analysisDiv.innerHTML = `
+            <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px;">
+                Current Price: ${analysis.currentPrice.toFixed(2)}
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <strong>Resistance Levels:</strong>
+                ${analysis.levels.resistance.map(formatLevel).join('')}
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <strong>Support Levels:</strong>
+                ${analysis.levels.support.map(formatLevel).join('')}
+            </div>
+
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+                <div style="font-size: 16px; font-weight: bold; color: ${actionColors[analysis.suggestion.action]}; margin-bottom: 10px;">
+                    Suggestion: ${analysis.suggestion.action}
+                </div>
+                <div style="color: #666; font-size: 13px;">
+                    ${analysis.suggestion.reason}
+                </div>
+                ${analysis.suggestion.riskRewardRatio ? `
+                    <div style="margin-top: 8px; font-size: 13px;">
+                        <strong>Risk/Reward Ratio:</strong> ${analysis.suggestion.riskRewardRatio}
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                        Next Resistance: ${analysis.suggestion.nextResistance} (${analysis.suggestion.resistanceStrength})<br>
+                        Next Support: ${analysis.suggestion.nextSupport} (${analysis.suggestion.supportStrength})
+                    </div>
+                ` : ''}
+            </div>
+        `;
     }
 
     startAutoUpdate() {
@@ -106,7 +158,6 @@ class ChartRenderer {
     }
 }
 
-// Create singleton instance
 const chartRenderer = new ChartRenderer('bandsChart');
 
 export {
