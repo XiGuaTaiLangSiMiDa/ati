@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Analysis</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- TradingView Widget BEGIN -->
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Enter token symbol (e.g., BTCUSDT)">
+            <button onclick="searchToken()">Search</button>
+        </div>
+
+        <div class="button-groups">
+            <div class="button-container timeframes">
+                <button data-timeframe="15m" class="active" onclick="toggleTimeframe('15m')">15m</button>
+                <button data-timeframe="30m" onclick="toggleTimeframe('30m')">30m</button>
+                <button data-timeframe="1h" onclick="toggleTimeframe('1h')">1h</button>
+                <button data-timeframe="2h" onclick="toggleTimeframe('2h')">2h</button>
+                <button data-timeframe="4h" onclick="toggleTimeframe('4h')">4h</button>
+                <button data-timeframe="7h" onclick="toggleTimeframe('7h')">7h</button>
+                <button data-timeframe="8h" onclick="toggleTimeframe('8h')">8h</button>
+                <button data-timeframe="12h" onclick="toggleTimeframe('12h')">12h</button>
+                <button data-timeframe="1d" onclick="toggleTimeframe('1d')">1d</button>
+                <button data-timeframe="3d" onclick="toggleTimeframe('3d')">3d</button>
+                <button data-timeframe="4d" onclick="toggleTimeframe('4d')">4d</button>
+                <button data-timeframe="1w" onclick="toggleTimeframe('1w')">1w</button>
+                <button data-timeframe="2w" onclick="toggleTimeframe('2w')">2w</button>
+                <button data-timeframe="1M" onclick="toggleTimeframe('1M')">1M</button>
+            </div>
+
+            <div class="button-container indicators">
+                <button data-indicator="fib" onclick="toggleIndicator('fib')">Fibonacci</button>
+                <button data-indicator="fixedVol" onclick="toggleIndicator('fixedVol')">Fixed Range Volume</button>
+                <button data-indicator="anchoredVol" onclick="toggleIndicator('anchoredVol')">Anchored Volume</button>
+            </div>
+        </div>
+
+        <div id="tradingview-widget"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
