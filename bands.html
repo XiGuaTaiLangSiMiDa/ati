@@ -13,45 +13,227 @@
         <a href="/" class="back-link">← Back to Main</a>
     </div>
 
-    <!-- Bollinger Bands Chart Container -->
     <div class="chart-container">
         <div class="chart-wrapper">
             <canvas id="bandsChart"></canvas>
             <button id="resetZoom">Reset Zoom</button>
         </div>
-        <!-- Analysis Grid will be inserted here by JavaScript -->
+        <div class="analysis-grid">
+            <div class="current-price-container">
+                <div class="current-price-label">Current Price:</div>
+                <div id="currentPrice" class="current-price-value">Loading...</div>
+            </div>
+            <div class="analysis-column">
+                <div class="analysis-title">Support Levels</div>
+                <div id="supportLevels">
+                    <div class="loading">Loading support levels...</div>
+                </div>
+            </div>
+            <div class="analysis-column">
+                <div class="analysis-title">Resistance Levels</div>
+                <div id="resistanceLevels">
+                    <div class="loading">Loading resistance levels...</div>
+                </div>
+            </div>
+            <div class="analysis-column">
+                <div class="analysis-title">Trading Recommendation</div>
+                <div id="tradingRecommendation">
+                    <div class="loading">Analyzing market conditions...</div>
+                </div>
+                <div class="order-book-metrics" id="orderBookMetrics">
+                    <div class="loading">Loading order book data...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import { chartRenderer } from './src/bands/chartRenderer.js';
-        
-        // Initialize chart when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize chart
-            chartRenderer.initialize();
-            
-            // Add reset zoom button handler
-            document.getElementById('resetZoom').addEventListener('click', () => {
-                if (chartRenderer.chart) {
-                    chartRenderer.chart.resetZoom();
+        import OrderBookAnalyzer from './src/bands/orderBookAnalyzer.js';
+
+        let currentOrderBook = null;
+        let currentBands = null;
+
+        async function fetchData() {
+            try {
+                // Fetch Bollinger Bands data
+                console.log('Fetching Bollinger Bands data...');
+                const bandsResponse = await fetch('/api/bollinger-bands');
+                if (!bandsResponse.ok) {
+                    throw new Error(`Failed to fetch Bollinger Bands data: ${bandsResponse.statusText}`);
                 }
+                const bandsData = await bandsResponse.json();
+                currentBands = bandsData;
+
+                // Update current price display
+                const currentPriceElement = document.getElementById('currentPrice');
+                currentPriceElement.textContent = bandsData['1d'].currentPrice.toFixed(2);
+
+                // Update chart first
+                chartRenderer.renderChart(bandsData);
+
+                // Fetch order book data
+                console.log('Fetching order book data...');
+                const orderBookResponse = await fetch('/api/order-book');
+                if (!orderBookResponse.ok) {
+                    throw new Error(`Failed to fetch order book data: ${orderBookResponse.statusText}`);
+                }
+                const orderBookData = await orderBookResponse.json();
+                currentOrderBook = orderBookData;
+
+                // Prepare data for analysis
+                const analysisData = {
+                    upper: bandsData['1d'].upper,
+                    lower: bandsData['1d'].lower,
+                    currentPrice: bandsData['1d'].currentPrice
+                };
+
+                // Analyze order book and update analysis
+                const analyzer = new OrderBookAnalyzer(currentOrderBook, analysisData);
+                const analysis = analyzer.analyze();
+
+                updateSupportLevels(analysis.levels.filter(l => l.type === 'support'));
+                updateResistanceLevels(analysis.levels.filter(l => l.type === 'resistance'));
+                updateTradingRecommendation(analysis.recommendation);
+                updateOrderBookMetrics(analysis.orderBookMetrics);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                displayError(error.message);
+            }
+        }
+
+        function updateSupportLevels(supports) {
+            const container = document.getElementById('supportLevels');
+            if (!supports || supports.length === 0) {
+                container.innerHTML = '<div class="no-data">No support levels detected</div>';
+                return;
+            }
+
+            container.innerHTML = supports.map(support => `
+                <div class="level">
+                    <div class="level-price">
+                        <span>${support.price.toFixed(2)}</span>
+                        <span class="strength-badge strength-${getStrengthClass(support.confidence)}">
+                            ${(support.confidence * 100).toFixed(1)}%
+                        </span>
+                    </div>
+                    <div class="level-details">
+                        Volume: ${support.volume.toFixed(2)} | Orders: ${support.orderCount}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateResistanceLevels(resistances) {
+            const container = document.getElementById('resistanceLevels');
+            if (!resistances || resistances.length === 0) {
+                container.innerHTML = '<div class="no-data">No resistance levels detected</div>';
+                return;
+            }
+
+            container.innerHTML = resistances.map(resistance => `
+                <div class="level">
+                    <div class="level-price">
+                        <span>${resistance.price.toFixed(2)}</span>
+                        <span class="strength-badge strength-${getStrengthClass(resistance.confidence)}">
+                            ${(resistance.confidence * 100).toFixed(1)}%
+                        </span>
+                    </div>
+                    <div class="level-details">
+                        Volume: ${resistance.volume.toFixed(2)} | Orders: ${resistance.orderCount}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTradingRecommendation(recommendation) {
+            const container = document.getElementById('tradingRecommendation');
+            if (!recommendation) {
+                container.innerHTML = '<div class="no-data">Unable to generate recommendation</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="suggestion-box">
+                    <div class="suggestion-action action-${recommendation.action}">
+                        ${recommendation.action}
+                    </div>
+                    <div class="suggestion-reason">
+                        ${recommendation.reason}
+                    </div>
+                    <div class="suggestion-metrics">
+                        <div>
+                            <span class="metric-label">Confidence:</span>
+                            ${(recommendation.confidence * 100).toFixed(1)}%
+                        </div>
+                        <div>
+                            <span class="metric-label">Risk/Reward:</span>
+                            ${recommendation.metrics.riskRewardRatio.toFixed(2)}
+                        </div>
+                        <div>
+                            <span class="metric-label">Position:</span>
+                            ${(recommendation.metrics.relativePosition * 100).toFixed(1)}%
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateOrderBookMetrics(metrics) {
+            const container = document.getElementById('orderBookMetrics');
+            if (!metrics) {
+                container.innerHTML = '<div class="no-data">No order book data available</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="metrics-title">Order Book Summary</div>
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-label">Buy Volume</div>
+                        <div class="metric-value">${metrics.buyVolume.toFixed(2)}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Sell Volume</div>
+                        <div class="metric-value">${metrics.sellVolume.toFixed(2)}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Buy Orders</div>
+                        <div class="metric-value">${metrics.buyOrderCount}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Sell Orders</div>
+                        <div class="metric-value">${metrics.sellOrderCount}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStrengthClass(confidence) {
+            if (confidence >= 0.7) return 'Strong';
+            if (confidence >= 0.4) return 'Medium';
+            return 'Weak';
+        }
+
+        function displayError(message) {
+            const containers = ['currentPrice', 'supportLevels', 'resistanceLevels', 'tradingRecommendation', 'orderBookMetrics'];
+            containers.forEach(id => {
+                const container = document.getElementById(id);
+                container.innerHTML = `<div class="error">${message}</div>`;
             });
+        }
+
+        // Initialize
+        chartRenderer.initialize();
+        fetchData();
+
+        // Add reset zoom button handler
+        document.getElementById('resetZoom').addEventListener('click', () => {
+            chartRenderer.resetZoom();
         });
 
-        // Clean up when page is unloaded
-        window.addEventListener('beforeunload', () => {
-            chartRenderer.destroy();
-        });
-
-        // Add error handling
-        window.addEventListener('error', (event) => {
-            console.error('Script error:', event.error);
-        });
-
-        // Handle promise rejections
-        window.addEventListener('unhandledrejection', (event) => {
-            console.error('Promise rejection:', event.reason);
-        });
+        // Update every 10 seconds
+        setInterval(fetchData, 10000);
     </script>
 </body>
 </html>
