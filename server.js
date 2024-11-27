@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { calculateAllTimeframeBollingerBands } = require('./src/indicators.js');
+const { klineCache } = require('./src/cache/cache.js');
 
 const app = express();
 const port = 3000;
@@ -10,7 +11,7 @@ app.use(express.static('.', {
     setHeaders: (res, filePath) => {
         // Set proper MIME types for JavaScript modules
         if (filePath.endsWith('.js')) {
-            if (filePath.includes('/src/bands/')) {
+            if (filePath.includes('/src/')) {
                 res.set('Content-Type', 'application/javascript; charset=UTF-8');
             } else {
                 res.set('Content-Type', 'application/javascript');
@@ -33,6 +34,38 @@ app.get('/api/bollinger-bands', async (req, res) => {
     }
 });
 
+// API endpoint for daily klines data
+app.get('/api/daily-klines', async (req, res) => {
+    try {
+        const symbol = req.query.symbol || 'BTCUSDT';
+        const klines = await klineCache.update(symbol, '1d');
+        
+        // Transform klines data to include OHLCV
+        const formattedKlines = klines.map(k => ({
+            openTime: k.openTime,
+            open: parseFloat(k.open),
+            high: parseFloat(k.high),
+            low: parseFloat(k.low),
+            close: parseFloat(k.close),
+            volume: parseFloat(k.volume)
+        }));
+        
+        res.json(formattedKlines);
+    } catch (error) {
+        console.error('Error fetching daily klines:', error);
+        res.status(500).json({ error: 'Failed to fetch daily klines' });
+    }
+});
+
+// Handle module imports
+app.get('*.js', (req, res, next) => {
+    if (req.url.includes('/src/')) {
+        res.type('application/javascript');
+        res.set('Content-Type', 'application/javascript; charset=UTF-8');
+    }
+    next();
+});
+
 // Serve the main TradingView page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -43,12 +76,9 @@ app.get('/bands', (req, res) => {
     res.sendFile(path.join(__dirname, 'bands.html'));
 });
 
-// Handle module imports
-app.get('*.js', (req, res, next) => {
-    if (req.url.includes('/src/bands/')) {
-        res.type('application/javascript');
-    }
-    next();
+// Serve the Cycle Analysis page
+app.get('/cycles', (req, res) => {
+    res.sendFile(path.join(__dirname, 'cycles.html'));
 });
 
 // Error handling middleware
