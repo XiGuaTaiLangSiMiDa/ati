@@ -34,6 +34,29 @@ app.get('/api/bollinger-bands', async (req, res) => {
     }
 });
 
+// API endpoint for weekly klines data
+app.get('/api/weekly-klines', async (req, res) => {
+    try {
+        const symbol = req.query.symbol || 'BTCUSDT';
+        const klines = await klineCache.update(symbol, '1w');
+        
+        // Transform klines data to include OHLCV
+        const formattedKlines = klines.map(k => ({
+            openTime: k.openTime,
+            open: parseFloat(k.open),
+            high: parseFloat(k.high),
+            low: parseFloat(k.low),
+            close: parseFloat(k.close),
+            volume: parseFloat(k.volume)
+        }));
+        
+        res.json(formattedKlines);
+    } catch (error) {
+        console.error('Error fetching weekly klines:', error);
+        res.status(500).json({ error: 'Failed to fetch weekly klines' });
+    }
+});
+
 // API endpoint for daily klines data
 app.get('/api/daily-klines', async (req, res) => {
     try {

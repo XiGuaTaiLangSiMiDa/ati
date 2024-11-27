@@ -6,6 +6,7 @@
     <title>Cycle Analysis & Fibonacci Retracements</title>
     <link rel="stylesheet" href="cycles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
 </head>
 <body>
     <div class="nav-links">
@@ -15,6 +16,7 @@
     <div class="chart-container">
         <div class="chart-wrapper">
             <canvas id="cyclesChart"></canvas>
+            <button id="resetZoom" class="reset-zoom">Reset Zoom</button>
         </div>
         <div class="analysis-container">
             <div class="current-price">
@@ -33,7 +35,8 @@
 
         async function fetchData() {
             try {
-                const response = await fetch('/api/daily-klines');
+                // Fetch weekly klines data
+                const response = await fetch('/api/weekly-klines');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -139,11 +142,44 @@
                     plugins: {
                         tooltip: {
                             mode: 'index',
-                            intersect: false
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label;
+                                    const value = context.parsed.y;
+                                    return `${label}: ${value.toFixed(2)}`;
+                                }
+                            }
                         },
                         legend: {
                             position: 'right',
                             align: 'start'
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'y',
+                                modifierKey: null
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                    speed: 0.1
+                                },
+                                pinch: {
+                                    enabled: true
+                                },
+                                mode: 'y',
+                                drag: {
+                                    enabled: true,
+                                    backgroundColor: 'rgba(0,0,0,0.1)',
+                                    borderColor: 'rgba(0,0,0,0.3)',
+                                    borderWidth: 1
+                                }
+                            },
+                            limits: {
+                                y: {min: 'original', max: 'original'}
+                            }
                         }
                     }
                 }
@@ -200,6 +236,13 @@
 
         // Initialize
         fetchData();
+
+        // Add reset zoom button handler
+        document.getElementById('resetZoom').addEventListener('click', () => {
+            if (cyclesChart) {
+                cyclesChart.resetZoom();
+            }
+        });
 
         // Update every minute
         setInterval(fetchData, 60000);

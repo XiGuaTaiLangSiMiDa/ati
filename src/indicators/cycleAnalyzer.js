@@ -3,7 +3,8 @@ class CycleAnalyzer {
         this.klines = klines;
         this.cycles = [];
         this.fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
-        this.minSwingStrength = 0.02; // 2% minimum price movement for swing points
+        this.minSwingStrength = 0.05; // 5% minimum price movement for swing points in weekly timeframe
+        this.lookbackPeriod = 3; // 3 weeks lookback for swing points
     }
 
     analyze() {
@@ -31,7 +32,7 @@ class CycleAnalyzer {
         if (!this.klines || this.klines.length === 0) return [];
 
         const swings = [];
-        const lookback = 5; // Number of bars to look back/forward
+        const lookback = this.lookbackPeriod;
 
         for (let i = lookback; i < this.klines.length - lookback; i++) {
             const currentHigh = parseFloat(this.klines[i].high);
@@ -114,7 +115,7 @@ class CycleAnalyzer {
                 Math.min(lastSwing.price, currentSwing.price)
             );
 
-            if (strength >= this.minSwingStrength * 2) {
+            if (strength >= this.minSwingStrength * 1.5) { // Increased threshold for significant swings
                 significantSwings.push(currentSwing);
                 lastSwing = currentSwing;
             }
