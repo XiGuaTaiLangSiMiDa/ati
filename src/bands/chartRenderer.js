@@ -68,71 +68,71 @@ class ChartRenderer {
     }
 
     displayAnalysis(analysis) {
-        let analysisDiv = document.getElementById('analysis-container');
-        if (!analysisDiv) {
-            analysisDiv = document.createElement('div');
-            analysisDiv.id = 'analysis-container';
-            document.querySelector('.chart-container').appendChild(analysisDiv);
+        let container = document.getElementById('analysis-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'analysis-container';
+            container.className = 'analysis-grid';
+            document.querySelector('.chart-container').appendChild(container);
         }
-
-        const strengthBadge = (strength) => {
-            const colors = {
-                'Strong': '#4CAF50',
-                'Medium': '#FFC107',
-                'Weak': '#FF5722'
-            };
-            return `<span style="color: ${colors[strength]}; font-weight: bold;">${strength}</span>`;
-        };
 
         const formatLevel = (level) => `
             <div class="level">
-                <div style="display: flex; justify-content: space-between;">
+                <div class="level-price">
                     <span>${level.price.toFixed(2)}</span>
-                    <span>${strengthBadge(level.strength)}</span>
+                    <span class="strength-badge strength-${level.strength}">${level.strength}</span>
                 </div>
-                <div style="font-size: 11px; color: #666;">
+                <div class="level-details">
                     Timeframes: ${level.timeframes.join(', ')}
                 </div>
             </div>
         `;
 
-        const actionColors = {
-            'LONG': '#4CAF50',
-            'SHORT': '#FF5722',
-            'HOLD': '#FFC107'
-        };
-
-        analysisDiv.innerHTML = `
-            <div style="font-size: 16px; font-weight: bold; margin-bottom: 15px;">
-                Current Price: ${analysis.currentPrice.toFixed(2)}
+        container.innerHTML = `
+            <!-- Column 1: Current Price and Resistance Levels -->
+            <div class="analysis-column">
+                <div class="analysis-title">
+                    Current Price: ${analysis.currentPrice.toFixed(2)}
+                </div>
+                <div>
+                    <strong>Resistance Levels</strong>
+                    ${analysis.levels.resistance.map(formatLevel).join('')}
+                </div>
             </div>
 
-            <div style="margin-bottom: 15px;">
-                <strong>Resistance Levels:</strong>
-                ${analysis.levels.resistance.map(formatLevel).join('')}
-            </div>
-
-            <div style="margin-bottom: 15px;">
-                <strong>Support Levels:</strong>
+            <!-- Column 2: Support Levels -->
+            <div class="analysis-column">
+                <div class="analysis-title">Support Levels</div>
                 ${analysis.levels.support.map(formatLevel).join('')}
             </div>
 
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-                <div style="font-size: 16px; font-weight: bold; color: ${actionColors[analysis.suggestion.action]}; margin-bottom: 10px;">
-                    Suggestion: ${analysis.suggestion.action}
-                </div>
-                <div style="color: #666; font-size: 13px;">
-                    ${analysis.suggestion.reason}
-                </div>
-                ${analysis.suggestion.riskRewardRatio ? `
-                    <div style="margin-top: 8px; font-size: 13px;">
-                        <strong>Risk/Reward Ratio:</strong> ${analysis.suggestion.riskRewardRatio}
+            <!-- Column 3: Trading Suggestion -->
+            <div class="analysis-column">
+                <div class="analysis-title">Trading Analysis</div>
+                <div class="suggestion-box">
+                    <div class="suggestion-action action-${analysis.suggestion.action}">
+                        ${analysis.suggestion.action}
                     </div>
-                    <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                        Next Resistance: ${analysis.suggestion.nextResistance} (${analysis.suggestion.resistanceStrength})<br>
-                        Next Support: ${analysis.suggestion.nextSupport} (${analysis.suggestion.supportStrength})
+                    <div class="suggestion-reason">
+                        ${analysis.suggestion.reason}
                     </div>
-                ` : ''}
+                    ${analysis.suggestion.riskRewardRatio ? `
+                        <div class="suggestion-metrics">
+                            <div>
+                                <span class="metric-label">Risk/Reward Ratio:</span>
+                                ${analysis.suggestion.riskRewardRatio}
+                            </div>
+                            <div>
+                                <span class="metric-label">Next Resistance:</span>
+                                ${analysis.suggestion.nextResistance} (${analysis.suggestion.resistanceStrength})
+                            </div>
+                            <div>
+                                <span class="metric-label">Next Support:</span>
+                                ${analysis.suggestion.nextSupport} (${analysis.suggestion.supportStrength})
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
         `;
     }

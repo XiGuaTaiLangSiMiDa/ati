@@ -10,10 +10,13 @@
 </head>
 <body>
     <div class="chart-container">
-        <canvas id="bandsChart"></canvas>
-        <button id="resetZoom" style="position: absolute; top: 10px; left: 10px; z-index: 1000; padding: 8px 16px; background: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;">
-            Reset Zoom
-        </button>
+        <!-- Chart Section -->
+        <div class="chart-wrapper">
+            <canvas id="bandsChart"></canvas>
+            <button id="resetZoom">Reset Zoom</button>
+        </div>
+        
+        <!-- Analysis Grid will be inserted here by JavaScript -->
     </div>
 
     <script type="module">
