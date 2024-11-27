@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Token Analysis</title>
+    <title>Trading Analysis</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- TradingView Widget BEGIN -->
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
     <div class="container">
+        <div class="nav-links">
+            <a href="/bands" class="nav-link">Bollinger Bands Analysis</a>
+        </div>
+
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Enter token symbol (e.g., BTCUSDT)">
             <button onclick="searchToken()">Search</button>

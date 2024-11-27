@@ -1,98 +1,111 @@
 body {
+    font-family: Arial, sans-serif;
     margin: 0;
     padding: 20px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     background-color: #f5f5f5;
-    min-height: 100vh;
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+}
+
+.nav-links {
+    margin-bottom: 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.nav-link {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #2196F3;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    background: #1976D2;
 }
 
 .search-container {
+    margin-bottom: 20px;
     display: flex;
     gap: 10px;
-    align-items: center;
 }
 
-#searchInput {
+.search-container input {
     flex: 1;
-    max-width: 300px;
-    padding: 10px 15px;
+    padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
 }
 
-#searchInput:focus {
-    border-color: #2962ff;
+.search-container button {
+    padding: 8px 16px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.search-container button:hover {
+    background: #388E3C;
 }
 
 .button-groups {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    margin-bottom: 20px;
 }
 
 .button-container {
+    margin-bottom: 10px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 10px 0;
 }
 
-.button-container.timeframes {
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 15px;
-}
-
-button {
+.button-container button {
     padding: 8px 16px;
-    cursor: pointer;
-    background: #ffffff;
+    background: white;
     border: 1px solid #ddd;
     border-radius: 4px;
+    cursor: pointer;
     font-size: 14px;
     transition: all 0.2s ease;
-    color: #333;
-    min-width: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
-button:hover {
+.button-container button:hover {
     background: #f0f0f0;
-    border-color: #bbb;
 }
 
-button.active {
-    background: #2962ff;
+.button-container button.active {
+    background: #2196F3;
     color: white;
-    border-color: #2962ff;
+    border-color: #1976D2;
 }
 
-button:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2);
+.timeframes button {
+    min-width: 60px;
+}
+
+.indicators button {
+    min-width: 120px;
 }
 
 #tradingview-widget {
-    height: 700px;
-    border-radius: 4px;
+    height: 600px;
+    margin-top: 20px;
+    border-radius: 8px;
     overflow: hidden;
-    background: #fff;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     body {
         padding: 10px;
@@ -100,49 +113,13 @@ button:focus {
 
     .search-container {
         flex-direction: column;
-        align-items: stretch;
     }
 
-    #searchInput {
-        max-width: none;
-    }
-
-    button {
-        min-width: 50px;
-        padding: 6px 12px;
+    .button-container {
+        justify-content: center;
     }
 
     #tradingview-widget {
-        height: 500px;
-    }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    body {
-        background-color: #1a1a1a;
-        color: #fff;
-    }
-
-    #searchInput {
-        background-color: #2d2d2d;
-        border-color: #3d3d3d;
-        color: #fff;
-    }
-
-    button {
-        background: #2d2d2d;
-        border-color: #3d3d3d;
-        color: #fff;
-    }
-
-    button:hover {
-        background: #3d3d3d;
-        border-color: #4d4d4d;
-    }
-
-    button.active {
-        background: #2962ff;
-        border-color: #2962ff;
+        height: 400px;
     }
 }

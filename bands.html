@@ -9,13 +9,16 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
 </head>
 <body>
+    <div class="nav-links">
+        <a href="/" class="back-link">← Back to Main</a>
+    </div>
+
+    <!-- Bollinger Bands Chart Container -->
     <div class="chart-container">
-        <!-- Chart Section -->
         <div class="chart-wrapper">
             <canvas id="bandsChart"></canvas>
             <button id="resetZoom">Reset Zoom</button>
         </div>
-        
         <!-- Analysis Grid will be inserted here by JavaScript -->
     </div>
 
@@ -24,6 +27,7 @@
         
         // Initialize chart when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize chart
             chartRenderer.initialize();
             
             // Add reset zoom button handler
