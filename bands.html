@@ -4,145 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bollinger Bands Analysis</title>
+    <link rel="stylesheet" href="bands.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }
-        .chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .timeframe-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        .bands-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .band-card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .current-price {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2196F3;
-            margin-bottom: 10px;
-        }
-        .band-value {
-            display: flex;
-            justify-content: space-between;
-            margin: 5px 0;
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .band-label {
-            color: #666;
-        }
-        .band-number {
-            font-weight: bold;
-        }
-        .update-time {
-            color: #666;
-            font-size: 12px;
-            text-align: right;
-            margin-top: 10px;
-        }
-    </style>
 </head>
 <body>
-    <div class="bands-grid" id="bandsGrid"></div>
+    <div class="chart-container">
+        <canvas id="bandsChart"></canvas>
+    </div>
 
-    <script>
-        const timeframeColors = {
-            '15m': '#FF5252',
-            '30m': '#FF4081',
-            '1h': '#E040FB',
-            '2h': '#7C4DFF',
-            '4h': '#536DFE',
-            '7h': '#448AFF',
-            '8h': '#40C4FF',
-            '12h': '#18FFFF',
-            '1d': '#69F0AE',
-            '3d': '#B2FF59',
-            '4d': '#EEFF41',
-            '1w': '#FFD740',
-            '2w': '#FFAB40',
-            '1M': '#FF6E40'
-        };
-
-        async function updateBollingerBands() {
-            try {
-                const response = await fetch('/api/bollinger-bands');
-                const data = await response.json();
-                const container = document.getElementById('bandsGrid');
-                container.innerHTML = '';
-
-                Object.entries(data).forEach(([timeframe, bands]) => {
-                    if (!bands) return;
-
-                    const card = document.createElement('div');
-                    card.className = 'band-card';
-                    card.style.borderLeft = `4px solid ${timeframeColors[timeframe]}`;
-
-                    const currentPrice = bands.currentPrice;
-                    const isAboveMiddle = currentPrice > bands.middle;
-                    const resistance = isAboveMiddle ? bands.upper : bands.middle;
-                    const support = isAboveMiddle ? bands.middle : bands.lower;
-
-                    card.innerHTML = `
-                        <div class="timeframe-title">${timeframe}</div>
-                        <div class="current-price">Current: ${currentPrice.toFixed(2)}</div>
-                        <div class="band-value">
-                            <span class="band-label">Upper Band:</span>
-                            <span class="band-number">${bands.upper.toFixed(2)}</span>
-                        </div>
-                        <div class="band-value">
-                            <span class="band-label">Middle Band:</span>
-                            <span class="band-number">${bands.middle.toFixed(2)}</span>
-                        </div>
-                        <div class="band-value">
-                            <span class="band-label">Lower Band:</span>
-                            <span class="band-number">${bands.lower.toFixed(2)}</span>
-                        </div>
-                        <div class="band-value">
-                            <span class="band-label">Next Resistance:</span>
-                            <span class="band-number">${resistance.toFixed(2)}</span>
-                        </div>
-                        <div class="band-value">
-                            <span class="band-label">Next Support:</span>
-                            <span class="band-number">${support.toFixed(2)}</span>
-                        </div>
-                        <div class="update-time">
-                            Updated: ${new Date(bands.timestamp).toLocaleTimeString()}
-                        </div>
-                    `;
-
-                    container.appendChild(card);
-                });
-            } catch (error) {
-                console.error('Error updating Bollinger Bands:', error);
-            }
-        }
-
-        // Update every minute
-        setInterval(updateBollingerBands, 60000);
+    <script type="module">
+        import { chartRenderer } from './src/bands/chartRenderer.js';
         
-        // Initial update
-        updateBollingerBands();
+        // Initialize chart when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            chartRenderer.initialize();
+        });
+
+        // Clean up when page is unloaded
+        window.addEventListener('beforeunload', () => {
+            chartRenderer.destroy();
+        });
+
+        // Add error handling
+        window.addEventListener('error', (event) => {
+            console.error('Script error:', event.error);
+        });
+
+        // Handle promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Promise rejection:', event.reason);
+        });
     </script>
 </body>
 </html>
