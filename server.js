@@ -29,8 +29,8 @@ function aggregateTrades(trades, currentPrice, priceStep = 0.1) {
     const levels = new Map();
     
     trades.forEach(trade => {
-        const price = parseFloat(trade.price); // Use 'price' field
-        const quantity = parseFloat(trade.qty); // Use 'qty' field
+        const price = parseFloat(trade.price);
+        const quantity = parseFloat(trade.qty);
         const roundedPrice = Math.round(price / priceStep) * priceStep;
         
         const existingLevel = levels.get(roundedPrice) || { volume: 0, trades: 0 };
@@ -49,6 +49,85 @@ function aggregateTrades(trades, currentPrice, priceStep = 0.1) {
         .sort((a, b) => a.price - b.price);
 }
 
+// Helper function to fetch full order book data
+async function fetchFullOrderBook(symbol, currentPrice, lowestPrice, highestPrice) {
+    const maxDepth = 5000;
+    let allBids = [];
+    let allAsks = [];
+    let lastUpdateId = 0;
+
+    try {
+        // Initial order book fetch
+        const initialResponse = await axios.get('https://api.binance.com/api/v3/depth', {
+            params: {
+                symbol: symbol,
+                limit: maxDepth
+            }
+        });
+
+        allBids = initialResponse.data.bids.map(([price, volume]) => ({
+            price: parseFloat(price),
+            volume: parseFloat(volume)
+        }));
+        allAsks = initialResponse.data.asks.map(([price, volume]) => ({
+            price: parseFloat(price),
+            volume: parseFloat(volume)
+        }));
+        lastUpdateId = initialResponse.data.lastUpdateId;
+
+        // Check if we need more data on either side
+        const lowestBid = Math.min(...allBids.map(b => b.price));
+        const highestAsk = Math.max(...allAsks.map(a => a.price));
+
+        // If we need more lower prices
+        if (lowestBid > lowestPrice) {
+            await delay(500); // Respect rate limits
+            const lowerResponse = await axios.get('https://api.binance.com/api/v3/depth', {
+                params: {
+                    symbol: symbol,
+                    limit: maxDepth,
+                    price: lowestBid
+                }
+            });
+            const lowerBids = lowerResponse.data.bids.map(([price, volume]) => ({
+                price: parseFloat(price),
+                volume: parseFloat(volume)
+            }));
+            allBids = [...allBids, ...lowerBids.filter(b => b.price < lowestBid)];
+        }
+
+        // If we need more higher prices
+        if (highestAsk < highestPrice) {
+            await delay(500); // Respect rate limits
+            const higherResponse = await axios.get('https://api.binance.com/api/v3/depth', {
+                params: {
+                    symbol: symbol,
+                    limit: maxDepth,
+                    price: highestAsk
+                }
+            });
+            const higherAsks = higherResponse.data.asks.map(([price, volume]) => ({
+                price: parseFloat(price),
+                volume: parseFloat(volume)
+            }));
+            allAsks = [...allAsks, ...higherAsks.filter(a => a.price > highestAsk)];
+        }
+
+        // Filter to required price range
+        allBids = allBids.filter(b => b.price >= lowestPrice && b.price <= highestPrice);
+        allAsks = allAsks.filter(a => a.price >= lowestPrice && a.price <= highestPrice);
+
+        return {
+            lastUpdateId,
+            bids: allBids,
+            asks: allAsks
+        };
+    } catch (error) {
+        console.error('Error fetching full order book:', error);
+        throw error;
+    }
+}
+
 // API endpoint for Bollinger Bands data
 app.get('/api/bollinger-bands', async (req, res) => {
     try {
@@ -65,9 +144,15 @@ app.get('/api/bollinger-bands', async (req, res) => {
 app.get('/api/order-book', async (req, res) => {
     try {
         const symbol = req.query.symbol || 'BTCUSDT';
-        const limit = 5000; // Maximum depth per request
-
         console.log(`Fetching market data for ${symbol}...`);
+
+        // Get Bollinger Bands data to determine price range
+        const bandsData = await calculateAllTimeframeBollingerBands(symbol);
+        const timeframes = Object.keys(bandsData);
+        const upperBands = timeframes.map(tf => bandsData[tf].upper);
+        const lowerBands = timeframes.map(tf => bandsData[tf].lower);
+        const highestPrice = Math.max(...upperBands);
+        const lowestPrice = Math.min(...lowerBands);
 
         // Get current price
         const tickerResponse = await axios.get('https://api.binance.com/api/v3/ticker/price', {
@@ -76,14 +161,8 @@ app.get('/api/order-book', async (req, res) => {
         const currentPrice = parseFloat(tickerResponse.data.price);
         console.log(`Current price: ${currentPrice}`);
 
-        // Get order book snapshot
-        const orderBookResponse = await axios.get('https://api.binance.com/api/v3/depth', {
-            params: {
-                symbol: symbol,
-                limit: limit
-            }
-        });
-        const orderBook = orderBookResponse.data;
+        // Get full order book data
+        const orderBook = await fetchFullOrderBook(symbol, currentPrice, lowestPrice, highestPrice);
 
         // Get recent trades
         const tradesResponse = await axios.get('https://api.binance.com/api/v3/trades', {
@@ -93,21 +172,10 @@ app.get('/api/order-book', async (req, res) => {
             }
         });
         const trades = tradesResponse.data;
-        console.log('Sample trade data:', trades[0]); // Log sample trade for field verification
 
         // Separate buy and sell trades
-        const buyTrades = trades.filter(t => !t.isBuyerMaker); // false means buyer is taker (market buy)
-        const sellTrades = trades.filter(t => t.isBuyerMaker); // true means seller is taker (market sell)
-
-        // Process order book data
-        const bids = orderBook.bids.map(([price, volume]) => ({
-            price: parseFloat(price),
-            volume: parseFloat(volume)
-        }));
-        const asks = orderBook.asks.map(([price, volume]) => ({
-            price: parseFloat(price),
-            volume: parseFloat(volume)
-        }));
+        const buyTrades = trades.filter(t => !t.isBuyerMaker);
+        const sellTrades = trades.filter(t => t.isBuyerMaker);
 
         // Aggregate trades
         const aggregatedBuyTrades = aggregateTrades(buyTrades, currentPrice);
@@ -117,13 +185,13 @@ app.get('/api/order-book', async (req, res) => {
         let bidTotal = 0;
         let askTotal = 0;
         
-        bids.forEach(bid => {
+        orderBook.bids.forEach(bid => {
             bidTotal += bid.volume;
             bid.total = bidTotal;
             bid.percentFromPrice = ((currentPrice - bid.price) / currentPrice) * 100;
         });
         
-        asks.forEach(ask => {
+        orderBook.asks.forEach(ask => {
             askTotal += ask.volume;
             ask.total = askTotal;
             ask.percentFromPrice = ((ask.price - currentPrice) / currentPrice) * 100;
@@ -132,25 +200,25 @@ app.get('/api/order-book', async (req, res) => {
         const result = {
             lastUpdateId: orderBook.lastUpdateId,
             currentPrice: currentPrice,
-            bids: bids,
-            asks: asks,
+            bids: orderBook.bids,
+            asks: orderBook.asks,
             recentTrades: {
                 buys: aggregatedBuyTrades,
                 sells: aggregatedSellTrades
             },
             summary: {
                 orderBook: {
-                    bidLevels: bids.length,
-                    askLevels: asks.length,
+                    bidLevels: orderBook.bids.length,
+                    askLevels: orderBook.asks.length,
                     totalBidVolume: bidTotal,
                     totalAskVolume: askTotal,
                     bidPriceRange: {
-                        min: Math.min(...bids.map(b => b.price)),
-                        max: Math.max(...bids.map(b => b.price))
+                        min: Math.min(...orderBook.bids.map(b => b.price)),
+                        max: Math.max(...orderBook.bids.map(b => b.price))
                     },
                     askPriceRange: {
-                        min: Math.min(...asks.map(a => a.price)),
-                        max: Math.max(...asks.map(a => a.price))
+                        min: Math.min(...orderBook.asks.map(a => a.price)),
+                        max: Math.max(...orderBook.asks.map(a => a.price))
                     }
                 },
                 recentTrades: {
