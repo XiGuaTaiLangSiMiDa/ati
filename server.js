@@ -52,78 +52,33 @@ function aggregateTrades(trades, currentPrice, priceStep = 0.1) {
 // Helper function to fetch full order book data
 async function fetchFullOrderBook(symbol, currentPrice, lowestPrice, highestPrice) {
     const maxDepth = 5000;
-    let allBids = [];
-    let allAsks = [];
-    let lastUpdateId = 0;
 
     try {
-        // Initial order book fetch
-        const initialResponse = await axios.get('https://api.binance.com/api/v3/depth', {
+        // Fetch order book with maximum depth
+        const response = await axios.get('https://api.binance.com/api/v3/depth', {
             params: {
                 symbol: symbol,
                 limit: maxDepth
             }
         });
 
-        allBids = initialResponse.data.bids.map(([price, volume]) => ({
+        const bids = response.data.bids.map(([price, volume]) => ({
             price: parseFloat(price),
             volume: parseFloat(volume)
-        }));
-        allAsks = initialResponse.data.asks.map(([price, volume]) => ({
+        })).filter(b => b.price >= lowestPrice && b.price <= highestPrice);
+
+        const asks = response.data.asks.map(([price, volume]) => ({
             price: parseFloat(price),
             volume: parseFloat(volume)
-        }));
-        lastUpdateId = initialResponse.data.lastUpdateId;
-
-        // Check if we need more data on either side
-        const lowestBid = Math.min(...allBids.map(b => b.price));
-        const highestAsk = Math.max(...allAsks.map(a => a.price));
-
-        // If we need more lower prices
-        if (lowestBid > lowestPrice) {
-            await delay(500); // Respect rate limits
-            const lowerResponse = await axios.get('https://api.binance.com/api/v3/depth', {
-                params: {
-                    symbol: symbol,
-                    limit: maxDepth,
-                    price: lowestBid
-                }
-            });
-            const lowerBids = lowerResponse.data.bids.map(([price, volume]) => ({
-                price: parseFloat(price),
-                volume: parseFloat(volume)
-            }));
-            allBids = [...allBids, ...lowerBids.filter(b => b.price < lowestBid)];
-        }
-
-        // If we need more higher prices
-        if (highestAsk < highestPrice) {
-            await delay(500); // Respect rate limits
-            const higherResponse = await axios.get('https://api.binance.com/api/v3/depth', {
-                params: {
-                    symbol: symbol,
-                    limit: maxDepth,
-                    price: highestAsk
-                }
-            });
-            const higherAsks = higherResponse.data.asks.map(([price, volume]) => ({
-                price: parseFloat(price),
-                volume: parseFloat(volume)
-            }));
-            allAsks = [...allAsks, ...higherAsks.filter(a => a.price > highestAsk)];
-        }
-
-        // Filter to required price range
-        allBids = allBids.filter(b => b.price >= lowestPrice && b.price <= highestPrice);
-        allAsks = allAsks.filter(a => a.price >= lowestPrice && a.price <= highestPrice);
+        })).filter(a => a.price >= lowestPrice && a.price <= highestPrice);
 
         return {
-            lastUpdateId,
-            bids: allBids,
-            asks: allAsks
+            lastUpdateId: response.data.lastUpdateId,
+            bids,
+            asks
         };
     } catch (error) {
-        console.error('Error fetching full order book:', error);
+        console.error('Error fetching order book:', error);
         throw error;
     }
 }
