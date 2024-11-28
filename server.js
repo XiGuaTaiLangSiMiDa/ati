@@ -210,6 +210,28 @@ app.get('/api/order-book', async (req, res) => {
     }
 });
 
+// API endpoint for monthly klines data
+app.get('/api/monthly-klines', async (req, res) => {
+    try {
+        const symbol = req.query.symbol || 'BTCUSDT';
+        const klines = await klineCache.update(symbol, '1M');
+
+        const formattedKlines = klines.map(k => ({
+            openTime: k.openTime,
+            open: parseFloat(k.open),
+            high: parseFloat(k.high),
+            low: parseFloat(k.low),
+            close: parseFloat(k.close),
+            volume: parseFloat(k.volume)
+        }));
+
+        res.json(formattedKlines);
+    } catch (error) {
+        console.error('Error fetching monthly klines:', error);
+        res.status(500).json({ error: 'Failed to fetch monthly klines' });
+    }
+});
+
 // API endpoint for weekly klines data
 app.get('/api/weekly-klines', async (req, res) => {
     try {

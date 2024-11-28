@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cycle Analysis & Fibonacci Retracements</title>
     <link rel="stylesheet" href="cycles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
     <div class="nav-links">
@@ -14,10 +13,7 @@
     </div>
 
     <div class="chart-container">
-        <div class="chart-wrapper">
-            <canvas id="cyclesChart"></canvas>
-            <button id="resetZoom" class="reset-zoom">Reset Zoom</button>
-        </div>
+        <div id="tradingview-widget"></div>
         <div class="analysis-container">
             <div class="current-price">
                 <h3>Current Price: <span id="currentPrice">--</span></h3>
@@ -29,223 +25,32 @@
     </div>
 
     <script type="module">
-        import CycleAnalyzer from './src/indicators/cycleAnalyzer.js';
+        import { initTradingView, handleResize } from './src/cycles/chartSetup.js';
+        import { updateChart } from './src/cycles/cycleRenderer.js';
+        import { updateAnalysis, displayErrorMessage } from './src/cycles/uiUpdater.js';
+        import { fetchAndAnalyzeData } from './src/cycles/dataService.js';
 
-        let cyclesChart;
-
-        async function fetchData() {
+        async function onChartReady() {
             try {
-                // Fetch weekly klines data
-                const response = await fetch('/api/weekly-klines');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const klines = await response.json();
-                if (!klines || klines.length === 0) {
-                    throw new Error('No klines data received');
-                }
-
-                const analyzer = new CycleAnalyzer(klines);
-                const cycles = analyzer.analyze();
-                const currentPrice = parseFloat(klines[klines.length - 1].close);
-                const context = analyzer.getCurrentContext(currentPrice);
-                
+                const { cycles, currentPrice, context } = await fetchAndAnalyzeData();
                 if (cycles && cycles.length > 0) {
-                    updateChart(cycles, currentPrice);
+                    await updateChart();
                     updateAnalysis(context, currentPrice);
-                } else {
-                    displayNoDataMessage();
                 }
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error in chart initialization:', error);
                 displayErrorMessage(error.message);
             }
         }
 
-        function updateChart(cycles, currentPrice) {
-            if (!cycles || cycles.length === 0) return;
+        // Initialize when page loads
+        window.addEventListener('load', () => initTradingView(onChartReady));
 
-            const ctx = document.getElementById('cyclesChart').getContext('2d');
-            const datasets = [];
-
-            // Add current price line
-            datasets.push({
-                label: 'Current Price',
-                data: [{x: 0, y: currentPrice}, {x: cycles.length * 2, y: currentPrice}],
-                borderColor: '#000000',
-                borderWidth: 2,
-                borderDash: [5, 5],
-                fill: false,
-                order: 0
-            });
-
-            // Add cycles and their Fibonacci levels
-            cycles.forEach((cycle, index) => {
-                const baseX = index * 2;
-                const color = `hsl(${(index * 30) % 360}, 70%, 50%)`;
-
-                // Add cycle line
-                datasets.push({
-                    label: `Cycle ${index + 1} (${cycle.type})`,
-                    data: [
-                        {x: baseX, y: cycle.startPrice},
-                        {x: baseX + 1, y: cycle.endPrice}
-                    ],
-                    borderColor: color,
-                    borderWidth: 3,
-                    fill: false,
-                    order: 1
-                });
-
-                // Add Fibonacci levels
-                if (cycle.fibLevels) {
-                    Object.entries(cycle.fibLevels).forEach(([level, price]) => {
-                        datasets.push({
-                            label: `Cycle ${index + 1} Fib ${level}`,
-                            data: [{x: baseX, y: price}, {x: baseX + 1, y: price}],
-                            borderColor: color,
-                            borderWidth: 1,
-                            borderDash: [2, 2],
-                            fill: false,
-                            order: 2
-                        });
-                    });
-                }
-            });
-
-            if (cyclesChart) {
-                cyclesChart.destroy();
-            }
-
-            cyclesChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            type: 'linear',
-                            display: false
-                        },
-                        y: {
-                            type: 'linear',
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: 'Price'
-                            }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.dataset.label;
-                                    const value = context.parsed.y;
-                                    return `${label}: ${value.toFixed(2)}`;
-                                }
-                            }
-                        },
-                        legend: {
-                            position: 'right',
-                            align: 'start'
-                        },
-                        zoom: {
-                            pan: {
-                                enabled: true,
-                                mode: 'y',
-                                modifierKey: null
-                            },
-                            zoom: {
-                                wheel: {
-                                    enabled: true,
-                                    speed: 0.1
-                                },
-                                pinch: {
-                                    enabled: true
-                                },
-                                mode: 'y',
-                                drag: {
-                                    enabled: true,
-                                    backgroundColor: 'rgba(0,0,0,0.1)',
-                                    borderColor: 'rgba(0,0,0,0.3)',
-                                    borderWidth: 1
-                                }
-                            },
-                            limits: {
-                                y: {min: 'original', max: 'original'}
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateAnalysis(context, currentPrice) {
-            document.getElementById('currentPrice').textContent = currentPrice.toFixed(2);
-            
-            const grid = document.getElementById('levelsGrid');
-            grid.innerHTML = '';
-
-            if (!context || context.length === 0) {
-                grid.innerHTML = '<div class="no-data">No cycle analysis available</div>';
-                return;
-            }
-
-            context.forEach((cycleContext, index) => {
-                if (!cycleContext) return;
-
-                const cycleDiv = document.createElement('div');
-                cycleDiv.className = 'cycle-analysis';
-                cycleDiv.innerHTML = `
-                    <h4>Cycle ${index + 1} (${cycleContext.cycle.type})</h4>
-                    <div class="cycle-strength">Strength: ${(cycleContext.cycle.strength * 100).toFixed(1)}%</div>
-                    ${cycleContext.nearestResistance ? `
-                        <div class="level resistance">
-                            <span class="label">Resistance (${cycleContext.nearestResistance.level})</span>
-                            <span class="price">${cycleContext.nearestResistance.price.toFixed(2)}</span>
-                        </div>
-                    ` : ''}
-                    ${cycleContext.nearestSupport ? `
-                        <div class="level support">
-                            <span class="label">Support (${cycleContext.nearestSupport.level})</span>
-                            <span class="price">${cycleContext.nearestSupport.price.toFixed(2)}</span>
-                        </div>
-                    ` : ''}
-                `;
-                grid.appendChild(cycleDiv);
-            });
-        }
-
-        function displayNoDataMessage() {
-            const grid = document.getElementById('levelsGrid');
-            grid.innerHTML = '<div class="no-data">No cycle data available</div>';
-            document.getElementById('currentPrice').textContent = '--';
-        }
-
-        function displayErrorMessage(message) {
-            const grid = document.getElementById('levelsGrid');
-            grid.innerHTML = `<div class="error">Error: ${message}</div>`;
-            document.getElementById('currentPrice').textContent = '--';
-        }
-
-        // Initialize
-        fetchData();
-
-        // Add reset zoom button handler
-        document.getElementById('resetZoom').addEventListener('click', () => {
-            if (cyclesChart) {
-                cyclesChart.resetZoom();
-            }
-        });
+        // Handle window resize
+        window.addEventListener('resize', handleResize);
 
         // Update every minute
-        setInterval(fetchData, 60000);
+        setInterval(onChartReady, 60000);
     </script>
 </body>
 </html>
