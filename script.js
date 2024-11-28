@@ -115,9 +115,6 @@ function toggleTimeframe(timeframe) {
         '2w': '2W',
         '3w': '3W',
         '1M': 'M',
-        '120d': '120D',
-        '144d': '144D',
-        '200d': '200D',
     };
 
     // Reload widget with new interval

@@ -22,9 +22,6 @@ const timeframeColors = {
     '2w': '#FFAB40',
     '3w': '#1FD740',
     '1M': '#FF6E40',
-    '120d': '#EF6E40',
-    '144d': '#FF5E40',
-    '200d': '#FF6E30',
 };
 
 const updateInterval = 60000; // 1 minute

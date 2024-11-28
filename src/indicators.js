@@ -24,9 +24,6 @@ function aggregateKlines(klines, timeframe) {
         '2w': 1344,  // 336h = 1344 * 15m
         '3w': 2016,   // 168h = 672 * 15m
         '1M': 2880,   // 720h = 2880 * 15m (assuming 30 days)
-        '120d': 96 * 120,    // 24h = 96 * 15m
-        '144d': 96 * 144,    // 24h = 96 * 15m
-        '200d': 96 * 200,    // 24h = 96 * 15m
     };
 
     const multiplier = multipliers[timeframe];
@@ -118,7 +115,7 @@ function calculateBollingerBands(data, period = 20, stdDevMultiplier = 2) {
 }
 
 async function calculateAllTimeframeBollingerBands(symbol) {
-    const timeframes = ['15m', '30m', '1h', '2h', '3h', '4h', '5h', '7h', '8h', '9h', '10h', '11h', '12h', '1d', '2d', '3d', '4d', '5d', '6d', '1w', '2w', '3w', '1M', '120d', '144d', '200d'];
+    const timeframes = ['15m', '30m', '1h', '2h', '3h', '4h', '5h', '7h', '8h', '9h', '10h', '11h', '12h', '1d', '2d', '3d', '4d', '5d', '6d', '1w', '2w', '3w', '1M'];
     const results = {};
 
     try {
