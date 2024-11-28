@@ -17,51 +17,56 @@ function createChartConfig(data) {
         yAxisID: 'y'
     });
 
-    // Add Bollinger Bands for each timeframe
+    // Create connected bands datasets
+    // Upper Band
+    datasets.push({
+        label: 'Upper Band',
+        data: timeframes.map(timeframe => data[timeframe].upper),
+        borderColor: '#FF4444',
+        backgroundColor: '#FF4444',
+        borderWidth: 2,
+        pointRadius: 6,
+        pointStyle: 'circle',
+        fill: false,
+        yAxisID: 'y'
+    });
+
+    // Middle Band
+    datasets.push({
+        label: 'Middle Band',
+        data: timeframes.map(timeframe => data[timeframe].middle),
+        borderColor: '#4444FF',
+        backgroundColor: '#4444FF',
+        borderWidth: 2,
+        pointRadius: 6,
+        pointStyle: 'triangle',
+        fill: false,
+        yAxisID: 'y'
+    });
+
+    // Lower Band
+    datasets.push({
+        label: 'Lower Band',
+        data: timeframes.map(timeframe => data[timeframe].lower),
+        borderColor: '#44FF44',
+        backgroundColor: '#44FF44',
+        borderWidth: 2,
+        pointRadius: 6,
+        pointStyle: 'square',
+        fill: false,
+        yAxisID: 'y'
+    });
+
+    // Add timeframe indicators
     timeframes.forEach((timeframe) => {
-        const bands = data[timeframe];
         const color = timeframeColors[timeframe];
-
-        // Create data arrays with null values except for the timeframe's position
-        const upperData = timeframes.map(tf => tf === timeframe ? bands.upper : null);
-        const middleData = timeframes.map(tf => tf === timeframe ? bands.middle : null);
-        const lowerData = timeframes.map(tf => tf === timeframe ? bands.lower : null);
-
-        // Upper Band
         datasets.push({
-            label: `${timeframe} Upper`,
-            data: upperData,
+            label: `${timeframe}`,
+            data: [null],  // Empty data, just for legend
             borderColor: color,
             backgroundColor: color,
-            borderWidth: 2,
-            pointRadius: 6,
-            pointStyle: 'circle',
-            fill: false,
-            yAxisID: 'y'
-        });
-
-        // Middle Band
-        datasets.push({
-            label: `${timeframe} Middle`,
-            data: middleData,
-            borderColor: color,
-            backgroundColor: color,
-            borderWidth: 2,
-            pointRadius: 6,
-            pointStyle: 'triangle',
-            fill: false,
-            yAxisID: 'y'
-        });
-
-        // Lower Band
-        datasets.push({
-            label: `${timeframe} Lower`,
-            data: lowerData,
-            borderColor: color,
-            backgroundColor: color,
-            borderWidth: 2,
-            pointRadius: 6,
-            pointStyle: 'square',
+            borderWidth: 0,
+            pointRadius: 0,
             fill: false,
             yAxisID: 'y'
         });
