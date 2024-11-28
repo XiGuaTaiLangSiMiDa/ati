@@ -83,10 +83,10 @@ function searchToken() {
 function toggleTimeframe(timeframe) {
     const button = document.querySelector(`button[data-timeframe="${timeframe}"]`);
     const allButtons = document.querySelectorAll('.button-container.timeframes button');
-    
+
     // Remove active class from all buttons
     allButtons.forEach(btn => btn.classList.remove('active'));
-    
+
     // Add active class to clicked button
     button.classList.add('active');
 
@@ -96,16 +96,28 @@ function toggleTimeframe(timeframe) {
         '30m': '30',
         '1h': '60',
         '2h': '120',
+        '3h': "180",
         '4h': '240',
+        '5h': '300',
         '7h': '420',
         '8h': '480',
+        '9h': '540',
+        '10h': '600',
+        '11h': '660',
         '12h': '720',
         '1d': 'D',
+        '2d': '2D',
         '3d': '3D',
         '4d': '4D',
+        '5d': '5D',
+        '6d': '6D',
         '1w': 'W',
         '2w': '2W',
-        '1M': 'M'
+        '3w': '3W',
+        '1M': 'M',
+        '120d': '120D',
+        '144d': '144D',
+        '200d': '200D',
     };
 
     // Reload widget with new interval
@@ -138,7 +150,7 @@ function toggleIndicator(indicator) {
         try {
             if (widget.chart && typeof widget.chart === 'function') {
                 const chart = widget.chart();
-                
+
                 switch (indicator) {
                     case 'fib':
                         if (button.classList.contains('active')) {
