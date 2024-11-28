@@ -4944,12 +4944,12 @@
     "open": 97900.05,
     "high": 98871.8,
     "low": 90791.1,
-    "close": 93174.5,
-    "volume": 120572.61629,
+    "close": 95490.36,
+    "volume": 154452.20079,
     "closeTime": 1733097599999,
-    "quoteVolume": 11355829158.980251,
-    "trades": 20399871,
-    "takerBuyBaseVolume": 58366.63427,
-    "takerBuyQuoteVolume": 5492726985.435206
+    "quoteVolume": 14590070641.009304,
+    "trades": 25774784,
+    "takerBuyBaseVolume": 75001.73895,
+    "takerBuyQuoteVolume": 7080425601.999687
   }
 ]

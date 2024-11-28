@@ -3,6 +3,7 @@ const path = require('path');
 const { calculateAllTimeframeBollingerBands } = require('./src/indicators.js');
 const { klineCache } = require('./src/cache/cache.js');
 const axios = require('axios');
+const binanceService = require('./src/binanceService.js');
 
 const app = express();
 const port = 3000;
@@ -27,18 +28,18 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 // Helper function to aggregate trades into price levels
 function aggregateTrades(trades, currentPrice, priceStep = 0.1) {
     const levels = new Map();
-    
+
     trades.forEach(trade => {
         const price = parseFloat(trade.price);
         const quantity = parseFloat(trade.qty);
         const roundedPrice = Math.round(price / priceStep) * priceStep;
-        
+
         const existingLevel = levels.get(roundedPrice) || { volume: 0, trades: 0 };
         existingLevel.volume += quantity;
         existingLevel.trades += 1;
         levels.set(roundedPrice, existingLevel);
     });
-    
+
     return Array.from(levels.entries())
         .map(([price, data]) => ({
             price,
@@ -61,7 +62,9 @@ async function fetchFullOrderBook(symbol, currentPrice, lowestPrice, highestPric
                 limit: maxDepth
             }
         });
-
+        //const data = await binanceService.getExtendedDepth(symbol);
+        //const response = { data };
+        //
         const bids = response.data.bids.map(([price, volume]) => ({
             price: parseFloat(price),
             volume: parseFloat(volume)
@@ -73,7 +76,7 @@ async function fetchFullOrderBook(symbol, currentPrice, lowestPrice, highestPric
         })).filter(a => a.price >= lowestPrice && a.price <= highestPrice);
 
         return {
-            lastUpdateId: response.data.lastUpdateId,
+            lastUpdateId: response.data.lastUpdateId || 0,
             bids,
             asks
         };
@@ -139,13 +142,13 @@ app.get('/api/order-book', async (req, res) => {
         // Calculate cumulative volumes
         let bidTotal = 0;
         let askTotal = 0;
-        
+
         orderBook.bids.forEach(bid => {
             bidTotal += bid.volume;
             bid.total = bidTotal;
             bid.percentFromPrice = ((currentPrice - bid.price) / currentPrice) * 100;
         });
-        
+
         orderBook.asks.forEach(ask => {
             askTotal += ask.volume;
             ask.total = askTotal;
@@ -200,7 +203,7 @@ app.get('/api/order-book', async (req, res) => {
         if (error.response) {
             console.error('Binance API response:', error.response.data);
         }
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to fetch market data',
             details: error.message
         });
@@ -212,7 +215,7 @@ app.get('/api/weekly-klines', async (req, res) => {
     try {
         const symbol = req.query.symbol || 'BTCUSDT';
         const klines = await klineCache.update(symbol, '1w');
-        
+
         const formattedKlines = klines.map(k => ({
             openTime: k.openTime,
             open: parseFloat(k.open),
@@ -221,7 +224,7 @@ app.get('/api/weekly-klines', async (req, res) => {
             close: parseFloat(k.close),
             volume: parseFloat(k.volume)
         }));
-        
+
         res.json(formattedKlines);
     } catch (error) {
         console.error('Error fetching weekly klines:', error);
@@ -234,7 +237,7 @@ app.get('/api/daily-klines', async (req, res) => {
     try {
         const symbol = req.query.symbol || 'BTCUSDT';
         const klines = await klineCache.update(symbol, '1d');
-        
+
         const formattedKlines = klines.map(k => ({
             openTime: k.openTime,
             open: parseFloat(k.open),
@@ -243,7 +246,7 @@ app.get('/api/daily-klines', async (req, res) => {
             close: parseFloat(k.close),
             volume: parseFloat(k.volume)
         }));
-        
+
         res.json(formattedKlines);
     } catch (error) {
         console.error('Error fetching daily klines:', error);
